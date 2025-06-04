@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Autotech A/C Chat</title>
+  <style>
+    /* Basic styling—feel free to tweak */
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 2rem;
+    }
+    #chatContainer {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #ffffff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    #messages {
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: #fafafa;
+      height: 300px;
+      overflow-y: auto;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    .message {
+      margin-bottom: 1rem;
+      line-height: 1.4;
+    }
+    .user {
+      color: #1a73e8;
+    }
+    .assistant {
+      color: #188038;
+    }
+    #inputArea {
+      display: flex;
+    }
+    #userInput {
+      flex: 1;
+      padding: 0.5rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px 0 0 4px;
+      outline: none;
+    }
+    #sendBtn {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      border: 1px solid #1a73e8;
+      background: #1a73e8;
+      color: #fff;
+      border-radius: 0 4px 4px 0;
+      cursor: pointer;
+    }
+    #sendBtn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div id="chatContainer">
+    <h2>Autotech A/C Chat</h2>
+    <div id="messages"></div>
+    <div id="inputArea">
+      <input
+        type="text"
+        id="userInput"
+        placeholder="Ask a question about your A/C system…"
+        autocomplete="off"
+      />
+      <button id="sendBtn">Send</button>
+    </div>
+  </div>
+
+  <script>
+    const WORKER_URL = "https://ac-chat-proxy.peter-sarantidis.workers.dev";
+    const messagesDiv = document.getElementById("messages");
+    const userInput    = document.getElementById("userInput");
+    const sendBtn      = document.getElementById("sendBtn");
+
+    function appendMessage(text, cls) {
+      const div = document.createElement("div");
+      div.className = "message " + cls;
+      div.textContent = text;
+      messagesDiv.appendChild(div);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    async function sendQuestion() {
+      const question = userInput.value.trim();
+      if (!question) return;
+
+      appendMessage("You: " + question, "user");
+      userInput.value = "";
+      sendBtn.disabled = true;
+      appendMessage("…thinking…", "assistant");
+
+      try {
+        const res = await fetch(WORKER_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question }),
+        });
+        const data = await res.json();
+        messagesDiv.removeChild(messagesDiv.lastChild);
+
+        if (data.reply) {
+          appendMessage("Bot: " + data.reply, "assistant");
+        } else {
+          appendMessage("Error: " + (data.error || "No reply"), "assistant");
+        }
+      } catch (err) {
+        messagesDiv.removeChild(messagesDiv.lastChild);
+        appendMessage("Network error: " + err.message, "assistant");
+      } finally {
+        sendBtn.disabled = false;
+        userInput.focus();
+      }
+    }
+
+    sendBtn.addEventListener("click", sendQuestion);
+    userInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendQuestion();
+    });
+  </script>
+</body>
+</html>
