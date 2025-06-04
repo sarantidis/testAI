@@ -73,7 +73,7 @@
       <input
         type="text"
         id="userInput"
-        placeholder="Ask a question about your A/C system…"
+        placeholder="What's eating your lunch today?"
         autocomplete="off"
       />
       <button id="sendBtn">Send</button>
@@ -98,7 +98,7 @@
       const question = userInput.value.trim();
       if (!question) return;
 
-      appendMessage("You: " + question, "user");
+      appendMessage("" + question, "user");
       userInput.value = "";
       sendBtn.disabled = true;
       appendMessage("…thinking…", "assistant");
