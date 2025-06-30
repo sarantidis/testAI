@@ -2442,8 +2442,10 @@ const scorePct = Math.round([
 	chargeUnit,  
 	chargeTolerance: 2
 });
+
 // At the end of runEvaluation (before modals/advisory blocks)
-// Build your POST payload for backend API:
+
+  // ───── Build backend payload ─────
   let vehicleYear = vehicleVal;
   if (typeof vehicleVal === "string") {
     const yearMatch = vehicleVal.match(/\d{4}/);
@@ -2456,9 +2458,9 @@ const scorePct = Math.round([
     model: vehicleVal.split(' ')[2] || "",
     vehicle: vehicleVal,
     customer: customerVal,
-    superheat: evapOutlet - interpolate(ptTable[refrigerantVal], evapPressure),
-    subcooling: parseFloat(getSubcoolingStatus(interpolate(ptTable[refrigerantVal], highPressure), condOutlet, refrigerantVal).subcooling),
-    fillPercent: Math.round((interpolate(ptTable[refrigerantVal], highPressure) / (ambientNum + 25)) * 100),
+    superheat: superheat,
+    subcooling: subcooling,
+    fillPercent: fillPercent,
     ambient: ambientNum,
     ventTemp: ventTemp,
     rh: rh,
@@ -2467,54 +2469,52 @@ const scorePct = Math.round([
     compressorType: compressorType,
     expansionDevice: document.getElementById("expansionDevice").value,
     dtcList: [], // Add real DTCs if you have them
-    // ...add more if needed
   };
 
-  // Backend API call for summary and tech plan
-  fetch('/api/index.ts', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(postPayload)
-  })
-  .then(response => response.json())
-  .then(data => {
-    // Customer summary
-    document.getElementById("customerSummary").textContent = data.reply || "";
+  // === Call backend for summary & technician plan ===
+fetch("https://ac-chat-proxy.peter-sarantidis.workers.dev", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(postPayload)
+})
+.then(response => response.json())
+.then(data => {
+   document.getElementById("customerSummary").textContent = data.reply || "";
 
-    // Technician/internal test plan
-    if (data.testPlan) {
-      document.getElementById('tech-plan').textContent = data.testPlan;
-      document.getElementById('tech-plan-section').style.display = "block";
-    } else {
-      document.getElementById('tech-plan-section').style.display = "none";
-    }
+  // Technician/internal test plan
+  if (data.testPlan) {
+    document.getElementById('tech-plan').textContent = data.testPlan;
+    document.getElementById('tech-plan-section').style.display = "block";
+  } else {
+    document.getElementById('tech-plan-section').style.display = "none";
+  }
 
-    // Tooltip handlers (set after HTML is updated)
-    document.querySelectorAll('.tooltip').forEach(wrapper => {
-      wrapper.addEventListener('click', () => {
-        wrapper.classList.toggle('show');
-      });
+  // Tooltip handlers (after content is rendered)
+  document.querySelectorAll('.tooltip').forEach(wrapper => {
+    wrapper.addEventListener('click', () => {
+      wrapper.classList.toggle('show');
     });
-
-    // (Optional) Update other state
-    window.latestReportText = stripHTML(document.getElementById("output").innerHTML);
-
-    // (Optional) Service interval advisory
-    const serviceInterval = document.getElementById("serviceInterval").value;
-    if (serviceInterval === "Never") {
-      // ...your advisory logic here, unchanged...
-    }
-  })
-  .catch(err => {
-    document.getElementById("customerSummary").textContent =
-      "There was a problem processing your request. Please try again.";
   });
-}
+
+  // (Optional) Update state for chat or advisory logic
+  window.latestReportText = stripHTML(document.getElementById("output").innerHTML);
+
+  // (Optional) Service interval advisory
+  const serviceInterval = document.getElementById("serviceInterval").value;
+  if (serviceInterval === "Never") {
+    // ...your advisory logic here...
+  }
+})
+.catch(err => {
+  document.getElementById("customerSummary").textContent =
+    "There was a problem processing your request. Please try again.";
+});
 
 // Attach the event listener
 document.getElementById("evaluateBtn").addEventListener("click", runEvaluation);
 
 </script>
+
 
 <script>
 //─── DOWNLOAD PDF ────────────────────────────────>
